@@ -1,0 +1,7 @@
+{
+  "name": "NeuroBuddy - Developmental Screening Tool",
+  "description": "An interactive story game where a child chats with an AI buddy. Behind the scenes, the AI analyzes response patterns to flag potential attention and language concerns for parents.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
