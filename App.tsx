@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChatMessage, Sender, GamePhase, AnalysisResult, AnalysisPayload } from './types';
 import { getStoryResponse, analyzeResponse } from './services/geminiService';
 import ChatBubble from './components/ChatBubble';
 import TypingIndicator from './components/TypingIndicator';
-import { SendIcon, RobotIcon, MicrophoneIcon } from './components/icons';
+import { PaperPlaneIcon, CuteRobotIcon, MicrophoneIcon } from './components/icons';
 import ParentReport from './components/ParentReport';
 
 // Fix: Add TypeScript definitions for the Web Speech API which are not available by default.
@@ -62,7 +61,13 @@ declare global {
 
 
 const MAX_TURNS = 5;
-const INITIAL_PROMPT = "Hi! Let's tell a story together! You find a magic door. What color is it?";
+const INITIAL_PROMPTS = [
+    "Hi! Let's tell a story together! You find a magic door. What color is it?",
+    "Hello! I'm so glad you're here. Let's imagine something amazing! You stumble upon a mysterious, glowing key. What do you do with it?",
+    "Hey there! Ready for an adventure? You meet a tiny dragon who has lost its roar. What's the first thing you say to it?",
+    "Hi friend! Let's create a story. You discover a secret map hidden in an old book. Where do you think it leads?",
+    "Welcome, storyteller! You're given a special seed that can grow anything you can imagine. What do you plant first?",
+];
 
 const App: React.FC = () => {
   const [gamePhase, setGamePhase] = useState<GamePhase>(GamePhase.START);
@@ -103,7 +108,7 @@ const App: React.FC = () => {
         }
       }
       if (finalTranscript) {
-         setUserInput(prev => prev + finalTranscript);
+         setUserInput(prev => prev.trim() ? prev.trim() + ' ' + finalTranscript.trim() : finalTranscript.trim());
       }
     };
 
@@ -156,11 +161,12 @@ const App: React.FC = () => {
   };
 
   const startGame = () => {
-    const firstMessage: ChatMessage = { id: Date.now().toString(), sender: Sender.AI, text: INITIAL_PROMPT };
+    const randomPrompt = INITIAL_PROMPTS[Math.floor(Math.random() * INITIAL_PROMPTS.length)];
+    const firstMessage: ChatMessage = { id: Date.now().toString(), sender: Sender.AI, text: randomPrompt };
     setMessages([firstMessage]);
     setGamePhase(GamePhase.PLAYING);
     responseStartTime.current = Date.now();
-    speakText(INITIAL_PROMPT);
+    speakText(randomPrompt);
   };
   
   const handleMicClick = () => {
@@ -190,7 +196,7 @@ const App: React.FC = () => {
     setUserInput('');
     setIsLoading(true);
 
-    const lastAiMessage = messages[messages.length - 1]?.text || INITIAL_PROMPT;
+    const lastAiMessage = messages[messages.length - 1]?.text || '';
 
     try {
         const [analysis, story] = await Promise.all([
@@ -231,14 +237,12 @@ const App: React.FC = () => {
       case GamePhase.START:
         return (
           <div className="text-center p-8 flex flex-col items-center justify-center h-full">
-            <div className="bg-purple-500 rounded-full p-4 mb-6 shadow-lg">
-                <RobotIcon />
-            </div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Welcome to NeuroBuddy!</h1>
-            <p className="text-lg text-gray-600 max-w-md mx-auto mb-8">A fun story game to explore creativity and response patterns.</p>
+            <CuteRobotIcon className="h-32 w-32 mb-4" />
+            <h1 className="text-5xl font-extrabold text-slate-800 mb-3">Hello, I'm NeuroBuddy!</h1>
+            <p className="text-lg text-slate-600 max-w-md mx-auto mb-10">Let's make up a fun story together. Are you ready?</p>
             <button
               onClick={startGame}
-              className="bg-purple-600 text-white font-bold py-3 px-8 rounded-full hover:bg-purple-700 transition-colors duration-300 shadow-lg transform hover:scale-105"
+              className="bg-teal-500 text-white font-bold py-3 px-10 rounded-full hover:bg-teal-600 transition-all duration-300 shadow-lg transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-200"
             >
               Let's Play!
             </button>
@@ -247,47 +251,48 @@ const App: React.FC = () => {
       case GamePhase.PLAYING:
         return (
           <div className="flex flex-col h-full">
-            <header className="bg-white p-4 text-center shadow-md">
-              <h2 className="text-xl font-bold text-purple-600">NeuroBuddy Story Time</h2>
-              <p className="text-sm text-gray-500">Turns remaining: {MAX_TURNS - analysisResults.length}</p>
+            <header className="p-4 text-center z-10 border-b border-slate-200/50">
+              <h2 className="text-2xl font-bold text-slate-700">NeuroBuddy Story Time</h2>
+              <p className="text-sm text-slate-500 font-semibold">Turn {analysisResults.length + 1} of {MAX_TURNS}</p>
             </header>
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-blue-50">
+            <main className="flex-1 overflow-y-auto p-4 md:p-6">
               {messages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
               {isLoading && <TypingIndicator />}
               <div ref={chatEndRef} />
             </main>
-            <footer className="p-4 bg-white border-t">
-              <div className="flex items-center max-w-3xl mx-auto">
+            <footer className="p-3 border-t border-slate-200/50">
+              <div className="flex items-center max-w-3xl mx-auto bg-white/80 rounded-full p-1.5 shadow-inner ring-1 ring-slate-200">
                 <button
                   onClick={handleMicClick}
                   disabled={isLoading}
-                  className={`p-3 border-2 border-r-0 rounded-l-full transition-colors flex items-center justify-center
+                  className={`relative p-3 rounded-full transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-teal-400
                     ${isListening 
-                      ? 'bg-red-100 border-red-300 text-red-500 animate-pulse' 
-                      : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                      ? 'bg-red-500 text-white' 
+                      : 'bg-white text-slate-500 hover:bg-slate-100'
                     }
-                    disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-400 disabled:border-gray-300`}
+                    disabled:bg-slate-200 disabled:cursor-not-allowed disabled:text-slate-400 shadow-sm`}
                   aria-label={isListening ? "Stop listening" : "Use microphone"}
                 >
                   <MicrophoneIcon />
+                   {isListening && <span className="absolute h-full w-full rounded-full bg-red-500 animate-ping opacity-75"></span>}
                 </button>
                 <input
                   type="text"
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder={isListening ? "Listening... click mic to stop" : "Type or press mic to talk..."}
-                  className="flex-1 w-full p-3 border-y-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
+                  placeholder={isListening ? "Listening..." : "Type your story here..."}
+                  className="flex-1 w-full px-4 py-2 bg-transparent text-slate-700 placeholder-slate-400 focus:outline-none"
                   disabled={isLoading}
                   aria-label="Chat input"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={isLoading || userInput.trim() === ''}
-                  className="bg-purple-600 text-white p-3 rounded-r-full hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors border-2 border-l-0 border-purple-600 disabled:border-gray-400"
+                  className="bg-teal-500 text-white p-3 rounded-full hover:bg-teal-600 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400 shadow-sm"
                   aria-label="Send message"
                 >
-                  <SendIcon />
+                  <PaperPlaneIcon />
                 </button>
               </div>
             </footer>
@@ -295,16 +300,28 @@ const App: React.FC = () => {
         );
       case GamePhase.REPORT:
         return (
-            <div className="p-4 md:p-6 overflow-y-auto">
+            <div className="p-4 md:p-6 bg-slate-50 overflow-y-auto h-full">
                 <ParentReport results={analysisResults} onRestart={resetGame} />
             </div>
         );
     }
   };
+  
+  const Background = () => (
+    <div className="absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute top-10 -left-24 w-96 h-96 bg-white/20 rounded-full filter blur-3xl opacity-80"></div>
+        <div className="absolute -top-24 right-10 w-80 h-80 bg-white/20 rounded-full filter blur-3xl opacity-80"></div>
+        <div className="absolute bottom-0 left-0 w-full h-48">
+            <div className="absolute -bottom-24 -right-20 w-[30rem] h-[30rem] bg-green-300/60 rounded-full filter blur-sm"></div>
+            <div className="absolute -bottom-28 -left-20 w-[25rem] h-[25rem] bg-emerald-400/50 rounded-full filter blur-sm"></div>
+        </div>
+    </div>
+  );
 
   return (
-    <div className="h-screen w-screen bg-blue-100 font-sans flex items-center justify-center">
-        <div className="h-full w-full md:h-[90vh] md:w-[60vw] md:max-w-4xl md:min-w-[400px] bg-gray-50 flex flex-col rounded-2xl shadow-2xl overflow-hidden">
+    <div className="h-screen w-screen font-sans relative flex items-center justify-center p-0 md:p-4">
+        <Background />
+        <div className="relative z-10 h-full w-full md:h-full md:max-h-[850px] md:w-full md:max-w-2xl bg-white/60 backdrop-blur-xl flex flex-col rounded-none md:rounded-3xl shadow-2xl overflow-hidden ring-1 ring-slate-200/50">
             {renderContent()}
         </div>
     </div>
